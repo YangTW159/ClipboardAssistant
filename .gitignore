@@ -1,0 +1,24 @@
+# Python cache and virtual environments
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+
+# Local clipboard data and settings
+clipboard.db
+*.db-journal
+*.db-shm
+*.db-wal
+settings.json
+
+# PyInstaller output
+build/
+dist/
+*.spec
+
+# Editor and operating system files
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
