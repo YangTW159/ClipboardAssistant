@@ -2,7 +2,7 @@
 
 A lightweight Windows clipboard history manager built with **Python + PyQt6**.
 It runs quietly in the system tray, records every copied text snippet locally,
-and lets you search, pin, re-copy, delete, or export your history — no cloud,
+and lets you search, re-copy, delete, export, or process it with AI — no cloud,
 no telemetry.
 
 中文说明请参阅 [项目说明.md](项目说明.md)。
@@ -22,6 +22,7 @@ no telemetry.
 - **Smart dedup** — suppresses duplicate copies within a configurable time window.
 - **Capacity limit** — keep only the newest *N* records (default 1000).
 - **Export to TXT** — dump your whole history to a text file.
+- **One-click AI actions** — right-click any entry to **summarize / translate / polish** it via an OpenAI-compatible API (DeepSeek, Volcengine Ark, etc.); calls run on a background thread so the UI never freezes.
 - **Autostart & customization** — launch on boot, show window on start, custom tray icon.
 - **Single-instance guard** — prevents duplicate listeners via a local socket.
 - **100% local & private** — history lives in a local SQLite database; nothing is uploaded.
@@ -54,10 +55,26 @@ python main.py
 
 Close the window to send the app to the tray; use the tray menu to reopen or quit.
 
+## AI actions
+
+Right-click a history entry and choose **AI 总结 / 翻译 / 润色**. The result
+shows in a dialog with a "copy to clipboard" button.
+
+To enable it, open **Settings** and fill in:
+
+| Field | Example |
+| --- | --- |
+| AI 接口地址 (base URL) | `https://api.deepseek.com` |
+| AI API Key | `sk-...` |
+| 模型名称 (model) | `deepseek-chat` |
+
+Any OpenAI-compatible endpoint works (DeepSeek, Volcengine Ark/Doubao,
+Moonshot, OpenAI, …). Your API key is stored only in the local settings file.
+
 ## Build a standalone EXE
 
 ```powershell
-python -m pip install pyinstaller
+python -m pip install pyinstaller pillow
 python -m PyInstaller --noconfirm --clean --onefile --windowed `
   --name "ClipboardAssistant" --icon "1.ico" --add-data "1.ico;." main.py
 ```
@@ -73,9 +90,10 @@ python -m pip install -r requirements-dev.txt
 python -m pytest -q
 ```
 
-Tests cover the database layer (insert / dedup / capacity / delete / export) and
-the settings layer (defaults / save-load round-trip / malformed JSON). They use
-temporary directories, so they never touch your real clipboard database.
+Tests cover the database layer (insert / dedup / capacity / delete / export),
+the settings layer (defaults / save-load round-trip / malformed JSON), and the
+AI request builder (payload structure / config validation). They use temporary
+directories, so they never touch your real clipboard database.
 
 ### Continuous integration
 
@@ -87,8 +105,8 @@ temporary directories, so they never touch your real clipboard database.
 ### Cutting a new release
 
 ```powershell
-git tag v1.0.0
-git push origin v1.0.0
+git tag v1.1.0
+git push origin v1.1.0
 ```
 
 This triggers the release workflow, which builds `ClipboardAssistant.exe` and
@@ -104,16 +122,18 @@ History and settings are stored locally under:
 
 The app only records **text** clipboard content. Because that history may contain
 passwords, tokens, or private messages, the local database and settings file are
-excluded via `.gitignore` and are never committed.
+excluded via `.gitignore` and are never committed. When you use an AI action,
+only the selected text is sent to the provider you configured; the app itself
+uploads nothing.
 
 Avoid copying secrets; if you do, delete the entry in the app or use "clear all".
 
 ## Project structure
 
 ```text
-core/   clipboard listener, settings
+core/   clipboard listener, settings, AI assistant + background worker
 db/     SQLite history storage
-ui/     main window, settings dialog, tray icon
+ui/     main window, settings dialog, tray icon, AI result dialog
 tests/  pytest unit tests
 main.py application entry point
 ```

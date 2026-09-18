@@ -40,7 +40,18 @@ class SettingsDialog(QDialog):
         form.addRow("相同内容去重：", self.duplicate_seconds)
         form.addRow("托盘图标：", icon_layout)
 
-        note = QLabel("右键历史记录可单条删除。程序只保存文本剪贴板内容。")
+        self.ai_base = QLineEdit(settings["ai_api_base"])
+        self.ai_key = QLineEdit(settings["ai_api_key"])
+        self.ai_key.setEchoMode(QLineEdit.EchoMode.Password)
+        self.ai_model = QLineEdit(settings["ai_model"])
+        form.addRow("AI 接口地址：", self.ai_base)
+        form.addRow("AI API Key：", self.ai_key)
+        form.addRow("模型名称：", self.ai_model)
+
+        note = QLabel(
+            "右键历史记录可单条删除，也可一键 AI 总结/翻译/润色。\n"
+            "AI 功能兼容 OpenAI 接口（如 DeepSeek、火山方舟），Key 仅保存在本机。"
+        )
         note.setWordWrap(True)
         save_button = QPushButton("保存")
         save_button.clicked.connect(self.save)
@@ -75,6 +86,9 @@ class SettingsDialog(QDialog):
                 "max_records": self.max_records.value(),
                 "duplicate_window_seconds": self.duplicate_seconds.value(),
                 "icon_path": icon_path,
+                "ai_api_base": self.ai_base.text().strip(),
+                "ai_api_key": self.ai_key.text().strip(),
+                "ai_model": self.ai_model.text().strip(),
             })
         except RuntimeError as error:
             QMessageBox.warning(self, "保存失败", str(error))

@@ -12,6 +12,9 @@ DEFAULTS = {
     "max_records": 1000,
     "duplicate_window_seconds": 3,
     "icon_path": "",
+    "ai_api_base": "https://api.deepseek.com",
+    "ai_api_key": "",
+    "ai_model": "deepseek-chat",
 }
 
 

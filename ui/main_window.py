@@ -1,12 +1,15 @@
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtWidgets import (
     QFileDialog, QHBoxLayout, QLineEdit, QListWidget, QListWidgetItem,
-    QMainWindow, QMessageBox, QPushButton, QVBoxLayout, QWidget,
+    QMainWindow, QMessageBox, QProgressDialog, QPushButton, QVBoxLayout, QWidget,
 )
 
+from core.ai_worker import AiWorker
+from core.settings import load_settings
 from db.database import (
     clear_all_records, delete_record, export_to_txt, get_all_records, insert_record,
 )
+from ui.ai_dialog import AiResultDialog
 
 
 class MainWindow(QMainWindow):
@@ -34,6 +37,9 @@ class MainWindow(QMainWindow):
         self.record_list.setContextMenuPolicy(Qt.ContextMenuPolicy.ActionsContextMenu)
         delete_action = self.record_list.addAction("删除此记录")
         delete_action.triggered.connect(self.delete_selected_record)
+        for action in ("总结", "翻译", "润色"):
+            ai_action = self.record_list.addAction(f"AI {action}")
+            ai_action.triggered.connect(lambda checked, a=action: self.run_ai(a))
         layout.addWidget(self.record_list)
 
         buttons = QHBoxLayout()
@@ -101,3 +107,39 @@ class MainWindow(QMainWindow):
     def closeEvent(self, event):
         event.ignore()
         self.hide()
+
+    def run_ai(self, action: str):
+        item = self.record_list.currentItem()
+        content = item.data(Qt.ItemDataRole.UserRole) if item else None
+        if not content:
+            return
+        settings = load_settings()
+        if not settings["ai_api_key"]:
+            QMessageBox.information(
+                self, "未配置 AI",
+                "请先在“设置”中填写 AI 接口地址、API Key 和模型名。",
+            )
+            self.settings_requested.emit()
+            return
+
+        self._progress = QProgressDialog(f"AI {action} 处理中…", None, 0, 0, self)
+        self._progress.setWindowTitle("请稍候")
+        self._progress.setCancelButton(None)
+        self._progress.setMinimumDuration(0)
+        self._progress.show()
+
+        self._worker = AiWorker(
+            settings["ai_api_base"], settings["ai_api_key"], settings["ai_model"],
+            action, content, self,
+        )
+        self._worker.succeeded.connect(self._on_ai_done)
+        self._worker.failed.connect(self._on_ai_failed)
+        self._worker.start()
+
+    def _on_ai_done(self, action: str, result: str):
+        self._progress.close()
+        AiResultDialog(action, result, self).exec()
+
+    def _on_ai_failed(self, error: str):
+        self._progress.close()
+        QMessageBox.warning(self, "AI 调用失败", error)
