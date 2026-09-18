@@ -4,6 +4,9 @@ on:
   push:
     tags: ["v*"]
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: windows-latest
@@ -22,12 +25,8 @@ jobs:
           pip install -r requirements.txt pyinstaller pillow
 
       - name: Build executable with PyInstaller
-        run: >
-          pyinstaller --noconfirm --clean --onefile --windowed
-          --name "ClipboardAssistant"
-          --icon "1.ico"
-          --add-data "1.ico;."
-          main.py
+        shell: bash
+        run: pyinstaller --noconfirm --clean --onefile --windowed --name "ClipboardAssistant" --icon "1.ico" --add-data "1.ico;." main.py
 
       - name: Upload release asset
         uses: softprops/action-gh-release@v2
